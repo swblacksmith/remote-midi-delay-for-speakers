@@ -1,0 +1,107 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>MIDI Remote</title>
+    <script type="text/javascript" src="/Content/d3.min.js"></script>
+</head>
+<body>
+
+    <h1>Inputs</h1>
+    <div id="inputs">
+        <p>Loading...</p>
+    </div>
+
+    <h1>Output</h1>
+    <div id="outputs">
+        <p>Loading...</p>
+    </div>
+
+    <script>
+        function subscribeToInput(input) {
+            if (input.name != "X-TOUCH MINI")
+            {
+                return;
+            }
+            console.log("Subscribing to websocket for input", input);
+
+            websocket = new WebSocket("ws://localhost:7331" + input.url + "/ws"); // TODO-JHA Correct URL
+            websocket.onopen = function () {
+                console.log("Opened websocket for", input);
+            };
+
+            websocket.onerror = function (event) {
+                console.error("Error for websocket", event);
+            };
+
+            websocket.onmessage = function (event) {
+                console.log("Data from websocket", JSON.parse(event.data));
+            };
+        };
+
+        function subscribeToOutput(output) {
+            if (output.name != "X-TOUCH MINI")
+            {
+                return;
+            }
+            console.log("Subscribing to websocket for output", output);
+
+            websocket = new WebSocket("ws://localhost:7331" + output.url + "/ws"); // TODO-JHA Correct URL
+
+            websocket.onopen = function () {
+                console.log("Opened websocket for", output);
+                var on = false;
+                setInterval(function() {
+                    on = !on;
+                    websocket.send(JSON.stringify({type: on ? "on" : "off", pitch: 9, velocity: on ? 127 : 0, channel: 10}));
+                }, 1000);
+            };
+
+            websocket.onerror = function (event) {
+                console.error("Error for websocket", event);
+            };
+
+            websocket.onmessage = function (event) {
+                console.log("Data from websocket", JSON.parse(event.data));
+            };
+        };
+
+        d3.json("/api/midi-devices/inputs", function(data) {
+            console.log(data);
+
+            let inputsDiv = d3.select("#inputs");
+            let allInputs = inputsDiv.selectAll("p").data(data, function(d) { return d ? d.name : this.id; });
+
+            allInputs
+                .enter().append("p")
+                    .each(function(d) { console.log("Adding Input", d); subscribeToInput(d); })
+                    .text(function(d) { return d.name;});
+
+            allInputs
+                .exit()
+                .each(function(d) {console.log("Removing Input", d);})
+                .remove();
+        });
+    </script>
+
+    <script>
+        d3.json("/api/midi-devices/outputs", function(data) {
+            console.log(data);
+
+            let outputsDiv = d3.select("#outputs");
+            let allOutputs = outputsDiv.selectAll("p").data(data, function(d) { return d ? d.name : this.id; });
+
+            allOutputs
+                .enter().append("p")
+                    .each(function(d) { console.log("Adding Output", d); subscribeToOutput(d);})
+                    .text(function(d) { return d.name;});
+
+            allOutputs
+                .exit()
+                .each(function(d) {console.log("Removing Output", d);})
+                .remove();
+        });
+    </script>
+</body>
+</html>
