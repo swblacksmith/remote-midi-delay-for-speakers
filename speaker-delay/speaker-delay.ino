@@ -16,28 +16,31 @@ AudioAnalyzeRMS          rms4;           //xy=449.9999771118164,496.666656494140
 AudioAnalyzeRMS          rms2;           //xy=451.6666666666666,418.33333333333326
 AudioEffectDelayExternal delayExt1(AUDIO_MEMORY_23LC1024, 700);      //xy=693.3333053588867,135
 AudioEffectDelayExternal delayExt2(AUDIO_MEMORY_23LC1024, 700);      //xy=819.3333053588867,225
+AudioEffectFade          fade2;          //xy=814,224
+AudioEffectFade          fade1;          //xy=823,155
 AudioOutputI2SQuad       i2s_quad2;      //xy=1130.666648864746,277.6666679382324
-AudioConnection          patchCord1(i2s_quad1, 0, delayExt1, 0);
-AudioConnection          patchCord2(i2s_quad1, 0, peak1, 0);
-AudioConnection          patchCord3(i2s_quad1, 0, rms1, 0);
-AudioConnection          patchCord4(i2s_quad1, 1, delayExt2, 0);
-AudioConnection          patchCord5(i2s_quad1, 1, peak2, 0);
-AudioConnection          patchCord6(i2s_quad1, 1, rms2, 0);
+AudioConnection          patchCord1(i2s_quad1, 0, peak1, 0);
+AudioConnection          patchCord2(i2s_quad1, 0, rms1, 0);
+AudioConnection          patchCord3(i2s_quad1, 0, delayExt1, 0);
+AudioConnection          patchCord4(i2s_quad1, 1, peak2, 0);
+AudioConnection          patchCord5(i2s_quad1, 1, rms2, 0);
+AudioConnection          patchCord6(i2s_quad1, 1, delayExt2, 0);
 AudioConnection          patchCord7(i2s_quad1, 2, i2s_quad2, 2);
 AudioConnection          patchCord8(i2s_quad1, 2, peak3, 0);
 AudioConnection          patchCord9(i2s_quad1, 2, rms3, 0);
 AudioConnection          patchCord10(i2s_quad1, 3, i2s_quad2, 3);
 AudioConnection          patchCord11(i2s_quad1, 3, peak4, 0);
 AudioConnection          patchCord12(i2s_quad1, 3, rms4, 0);
-AudioConnection          patchCord13(delayExt1, 0, i2s_quad2, 0);
-AudioConnection          patchCord14(delayExt2, 0, i2s_quad2, 1);
+AudioConnection          patchCord13(delayExt2, 0, fade2, 0);
+AudioConnection          patchCord14(delayExt1, 0, fade1, 0);
+AudioConnection          patchCord15(fade2, 0, i2s_quad2, 1);
+AudioConnection          patchCord16(fade1, 0, i2s_quad2, 0);
 AudioControlSGTL5000     sgtl5000_2;     //xy=112,538.0000171661377
 AudioControlSGTL5000     sgtl5000_1;     //xy=131.33333587646484,442.6666507720947
 // GUItool: end automatically generated code
 
-
-int firstDelay = 0;
-int secondDelay = 0;
+int firstDelay = 29;
+int secondDelay = 29;
 //int firstDelay = 100;
 //int secondDelay = 100;
 
@@ -168,16 +171,17 @@ uint8_t cnt=0;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  delay(10);
+  delay(5);
   usbMIDI.read();
 
   if(fps > 50) {
     if (peak1.available() && peak2.available() && peak3.available() && peak4.available() 
         && rms1.available() && rms2.available() && rms3.available() && rms4.available()) {
       fps=0;
-      float f = peak2.read() * 150.0;
-      uint8_t PeakChars1 = peak1.read() * 15.0;
-      uint8_t PeakChars2 = f / 10.0;
+      float p1 = peak1.read() * 150.0;
+      uint8_t PeakChars1 = p1 / 10.0;
+      float p2 = peak2.read() * 150.0;
+      uint8_t PeakChars2 = p2 / 10.0;
       uint8_t PeakChars3 = peak3.read() * 15.0;
       uint8_t PeakChars4 = peak4.read() * 15.0;
       float g = rms2.read() * 150.0;
@@ -237,10 +241,27 @@ void loop() {
       Serial.print("/");
       Serial.print(AudioProcessorUsageMax());
       Serial.print(" ");
-      Serial.print(f);
+      Serial.print(p2);
       Serial.print(" ");
       Serial.print(g);
       Serial.println();
+
+      if (p1 > 2.0)
+      {
+        fade1.fadeIn(5);
+      }
+      else
+      {
+        fade1.fadeOut(2000);
+      }
+      if (p2 > 2.0)
+      {
+        fade2.fadeIn(5);
+      }
+      else
+      {
+        fade2.fadeOut(2000);
+      }
     }
   }
 }
